@@ -17,7 +17,7 @@ parser.add_argument("--transition_distr", default="exp", type=str)
 parser.add_argument("--num_processes", "-p", default=1, type=int)
 parser.add_argument("--seed", "-s", default=None, type=int)
 parsed = vars(parser.parse_args())
-
+start_o = time.time()
 dataset = parsed["dataset"]
 rule_lengths = parsed["rule_lengths"]
 rule_lengths = [rule_lengths] if (type(rule_lengths) == int) else rule_lengths
@@ -107,3 +107,12 @@ dt = dt.strftime("%d%m%y%H%M")
 rl.save_rules(dt, rule_lengths, num_walks, transition_distr, seed)
 rl.save_rules_verbalized(dt, rule_lengths, num_walks, transition_distr, seed)
 rules_statistics(rl.rules_dict)
+
+
+end_o = time.time()
+total_time_o = round(end_o- start_o, 6)  
+print("Learning for dataset", dataset, " finished in {} seconds.".format(total_time_o))
+with open('learning_time.txt', 'a') as f:
+    f.write(dataset+' learn:\t')
+    f.write(str(total_time_o))
+    f.write('\n')

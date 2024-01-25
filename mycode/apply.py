@@ -23,6 +23,7 @@ parser.add_argument("--num_processes", "-p", default=1, type=int)
 parsed = vars(parser.parse_args())
 
 dataset = parsed["dataset"]
+start_o = time.time()
 rules_file = parsed["rules"]
 window = parsed["window"]
 top_k = parsed["top_k"]
@@ -49,6 +50,19 @@ score_func = score_12
 # It is possible to specify a list of list of arguments for tuning
 args = [[0.1, 0.5]]
 
+### added eval_paper_authors for logging 
+exp_nr = 0
+if window < 0:
+    steps = 'multistep'
+    windowname = 'minus'+str(window)
+else:
+    steps ='singlestep'
+    windowname = str(window)
+method = 'tkgr'
+filter = 'timeaware'
+logname = method + '-' + dataset + '-' +str(exp_nr) + '-' +steps + '-' + windowname + '-' + str(0)
+print(logname)
+##end eval_paper_authors
 
 def apply_rules(i, num_queries):
     """
@@ -74,16 +88,20 @@ def apply_rules(i, num_queries):
         test_queries_idx = range(i * num_queries, len(test_data))
 
     cur_ts = test_data[test_queries_idx[0]][3]
+    first_test_query_ts = test_data[0][3] #added eval_paper_authors: first_test_query_ts
     edges = ra.get_window_edges(data.all_idx, cur_ts, learn_edges, window)
 
+
+
     it_start = time.time()
+    eval_paper_authors_logging_dict = {} #added eval_paper_authors for logging
     for j in test_queries_idx:
         test_query = test_data[j]
         cands_dict = [dict() for _ in range(len(args))]
 
         if test_query[3] != cur_ts:
             cur_ts = test_query[3]
-            edges = ra.get_window_edges(data.all_idx, cur_ts, learn_edges, window)
+            edges = ra.get_window_edges(data.all_idx, cur_ts, learn_edges, window, first_test_query_ts) #added eval_paper_authors: first_test_query_ts
 
         if test_query[1] in rules_dict:
             dicts_idx = list(range(len(args)))
@@ -157,7 +175,22 @@ def apply_rules(i, num_queries):
             no_cands_counter += 1
             for s in range(len(args)):
                 all_candidates[s][j] = dict()
+        #added eval_paper_authors
+        import inspect
+        import sys
+        import os
+        currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+        # parentdir = os.path.dirname(currentdir)
+        sys.path.insert(1, currentdir) 
+        sys.path.insert(1, os.path.join(sys.path[0], '../..'))        
+   
+        import evaluation_utils 
+        num_nodes, num_rels = evaluation_utils.get_total_number(dataset_dir, 'stat.txt')
+        query_name, gt_test_query_ids = evaluation_utils.query_name_from_quadruple(test_query, num_rels)
 
+        predictions = evaluation_utils.create_scores_tensor(all_candidates[s][j], num_nodes)  
+        eval_paper_authors_logging_dict[query_name] = [predictions, gt_test_query_ids]               
+        #end eval_paper_authors t
         if not (j - test_queries_idx[0] + 1) % 100:
             it_end = time.time()
             it_time = round(it_end - it_start, 6)
@@ -168,8 +201,7 @@ def apply_rules(i, num_queries):
             )
             it_start = time.time()
 
-    return all_candidates, no_cands_counter
-
+    return all_candidates, no_cands_counter, eval_paper_authors_logging_dict #eval_paper_authors added eval_paper_authors_logging_dict
 
 start = time.time()
 num_queries = len(test_data) // num_processes
@@ -177,6 +209,21 @@ output = Parallel(n_jobs=num_processes)(
     delayed(apply_rules)(i, num_queries) for i in range(num_processes)
 )
 end = time.time()
+
+#added eval_paper_authors for logging
+eval_paper_authors_final_logging_dict = {}
+for proc_loop in range(num_processes):
+    eval_paper_authors_final_logging_dict.update(output[proc_loop][2])
+import pathlib
+import pickle
+import os
+dirname = os.path.join(pathlib.Path().resolve(), 'results' )
+eval_paper_authorsfilename = os.path.join(dirname, logname + ".pkl")
+# if not os.path.isfile(eval_paper_authorsfilename):
+with open(eval_paper_authorsfilename,'wb') as file:
+    pickle.dump(eval_paper_authors_final_logging_dict, file, protocol=4) 
+file.close()
+#END eval_paper_authors
 
 final_all_candidates = [dict() for _ in range(len(args))]
 for s in range(len(args)):
@@ -203,3 +250,15 @@ for s in range(len(args)):
         window,
         score_func_str,
     )
+
+
+
+
+
+end_o = time.time()
+total_time_o = round(end_o- start_o, 6)  
+print("Apply for dataset", dataset, " finished in {} seconds.".format(total_time_o))
+with open('learning_time.txt', 'a') as f:
+    f.write(dataset+'apply:\t')
+    f.write(str(total_time_o))
+    f.write('\n')

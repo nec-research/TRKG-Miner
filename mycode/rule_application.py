@@ -37,11 +37,12 @@ def filter_rules(rules_dict, min_conf, min_body_supp, rule_lengths):
     return new_rules_dict
 
 
-def get_window_edges(all_data, test_query_ts, learn_edges, window=-1):
+def get_window_edges(all_data, test_query_ts, learn_edges, window=-1, first_test_query_ts=0): #modified eval_paper_authors: added first_test_query_ts for validation set usage
     """
     Get the edges in the data (for rule application) that occur in the specified time window.
     If window is 0, all edges before the test query timestamp are included.
     If window is -1, the edges on which the rules are learned are used.
+    If window is -2, all edges from train and validation set are used. modified by eval_paper_authors.
     If window is an integer n > 0, all edges within n timestamps before the test query
     timestamp are included.
 
@@ -50,22 +51,30 @@ def get_window_edges(all_data, test_query_ts, learn_edges, window=-1):
         test_query_ts (np.ndarray): test query timestamp
         learn_edges (dict): edges on which the rules are learned
         window (int): time window used for rule application
-
+        first_test_query_ts (int): smallest timestamp from test set (eval_paper_authors)
     Returns:
         window_edges (dict): edges in the window for rule application
     """
 
     if window > 0:
         mask = (all_data[:, 3] < test_query_ts) * (
-            all_data[:, 3] >= test_query_ts - window
+            all_data[:, 3] >= test_query_ts - window 
         )
         window_edges = store_edges(all_data[mask])
     elif window == 0:
-        mask = all_data[:, 3] < test_query_ts
-        window_edges = store_edges(all_data[mask])
+        mask = all_data[:, 3] < test_query_ts #!!! 
+        window_edges = store_edges(all_data[mask]) 
     elif window == -1:
         window_edges = learn_edges
-
+    elif window == -2: #modified eval_paper_authors: added this option
+        mask = all_data[:, 3] < first_test_query_ts # all edges at timestep smaller then the test queries. meaning all from train and valid set
+        window_edges = store_edges(all_data[mask])  
+    elif window == -200: #modified eval_paper_authors: added this option
+        abswindow = 200
+        mask = (all_data[:, 3] < first_test_query_ts) * (
+            all_data[:, 3] >= first_test_query_ts - abswindow  # all edges at timestep smaller than the test queries - 200
+        )
+        window_edges = store_edges(all_data[mask])
     return window_edges
 
 

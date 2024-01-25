@@ -92,11 +92,16 @@ class Grapher(object):
         Returns:
             quads (np.ndarray): indices of quadruples
         """
+        subs = [int(x[0]) for x in quads] # [self.entity2id[x[0]] for x in quads]  #modified evaluation paper authors
+        rels = [int(x[1]) for x in quads] #[self.relation2id[x[1]] for x in quads] #modified evaluation paper authors
+        objs = [int(x[2]) for x in quads] #[self.entity2id[x[2]] for x in quads] #modified evaluation paper authors
 
-        subs = [self.entity2id[x[0]] for x in quads]
-        rels = [self.relation2id[x[1]] for x in quads]
-        objs = [self.entity2id[x[2]] for x in quads]
+        ts =  set([x[3] for x in quads]) #modified evaluation paper authors
+        self.ts2id = {tsvalu:int(int(tsvalu)) for tsvalu in ts} #{value: idx for idx, value in enumerate((ts))} #maps ts2indeces #modified evaluation paper authors
+        self.id2ts = dict([(v, k) for k, v in self.ts2id.items()])
+
         tss = [self.ts2id[x[3]] for x in quads]
+        # tss = [x[3] for x in quads] #modified evaluation paper authors
         quads = np.column_stack((subs, rels, objs, tss))
 
         return quads
