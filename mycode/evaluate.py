@@ -44,7 +44,7 @@ def filter_candidates(test_query, candidates, test_data):
     return candidates
 
 
-def calculate_rank(test_query_answer, candidates, num_entities, setting="best"):
+def calculate_rank(test_query_answer, candidates, num_entities, setting="average"):
     """
     Calculate the rank of the correct answer for a test query.
     Depending on the setting, the average/best/worst rank is taken if there
