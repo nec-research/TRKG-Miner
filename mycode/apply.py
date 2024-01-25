@@ -13,17 +13,18 @@ from score_functions import score_12
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--dataset", "-d", default="", type=str)
+parser.add_argument("--dataset", "-d", default="ICEWS14", type=str)
 parser.add_argument("--test_data", default="test", type=str)
-parser.add_argument("--rules", "-r", default="", type=str)
-parser.add_argument("--rule_lengths", "-l", default=1, type=int, nargs="+")
-parser.add_argument("--window", "-w", default=-1, type=int)
+parser.add_argument("--rules", "-r", default="0112231719_r[3]_n100_exp_sNone_rules.json", type=str)
+parser.add_argument("--rule_lengths", "-l", default=3, type=int, nargs="+")
+parser.add_argument("--window", "-w", default=200, type=int)
 parser.add_argument("--top_k", default=20, type=int)
-parser.add_argument("--num_processes", "-p", default=1, type=int)
+parser.add_argument("--num_processes", "-p", default=10, type=int)
+parser.add_argument("--runnr", default=0, type=int) #ADDED JULIA
+parser.add_argument("--seed", default=0, type=int) #ADDED JULIA
 parsed = vars(parser.parse_args())
-
-dataset = parsed["dataset"]
 start_o = time.time()
+dataset = parsed["dataset"]
 rules_file = parsed["rules"]
 window = parsed["window"]
 top_k = parsed["top_k"]
@@ -62,6 +63,8 @@ method = 'tkgr'
 filter = 'timeaware'
 logname = method + '-' + dataset + '-' +str(exp_nr) + '-' +steps + '-' + windowname + '-' + str(0)
 print(logname)
+    #renet-ICEWS18-multistep-raw-modifiedpredict_xxx_1_3206_6624.pt
+
 ##end eval_paper_authors
 
 def apply_rules(i, num_queries):
@@ -90,8 +93,6 @@ def apply_rules(i, num_queries):
     cur_ts = test_data[test_queries_idx[0]][3]
     first_test_query_ts = test_data[0][3] #added eval_paper_authors: first_test_query_ts
     edges = ra.get_window_edges(data.all_idx, cur_ts, learn_edges, window)
-
-
 
     it_start = time.time()
     eval_paper_authors_logging_dict = {} #added eval_paper_authors for logging
@@ -191,6 +192,7 @@ def apply_rules(i, num_queries):
         predictions = evaluation_utils.create_scores_tensor(all_candidates[s][j], num_nodes)  
         eval_paper_authors_logging_dict[query_name] = [predictions, gt_test_query_ids]               
         #end eval_paper_authors t
+
         if not (j - test_queries_idx[0] + 1) % 100:
             it_end = time.time()
             it_time = round(it_end - it_start, 6)
@@ -202,6 +204,7 @@ def apply_rules(i, num_queries):
             it_start = time.time()
 
     return all_candidates, no_cands_counter, eval_paper_authors_logging_dict #eval_paper_authors added eval_paper_authors_logging_dict
+
 
 start = time.time()
 num_queries = len(test_data) // num_processes
@@ -253,8 +256,6 @@ for s in range(len(args)):
 
 
 
-
-
 end_o = time.time()
 total_time_o = round(end_o- start_o, 6)  
 print("Apply for dataset", dataset, " finished in {} seconds.".format(total_time_o))
@@ -262,3 +263,4 @@ with open('learning_time.txt', 'a') as f:
     f.write(dataset+'apply:\t')
     f.write(str(total_time_o))
     f.write('\n')
+

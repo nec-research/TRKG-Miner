@@ -36,7 +36,6 @@ def filter_rules(rules_dict, min_conf, min_body_supp, rule_lengths):
 
     return new_rules_dict
 
-
 def get_window_edges(all_data, test_query_ts, learn_edges, window=-1, first_test_query_ts=0): #modified eval_paper_authors: added first_test_query_ts for validation set usage
     """
     Get the edges in the data (for rule application) that occur in the specified time window.
@@ -52,6 +51,7 @@ def get_window_edges(all_data, test_query_ts, learn_edges, window=-1, first_test
         learn_edges (dict): edges on which the rules are learned
         window (int): time window used for rule application
         first_test_query_ts (int): smallest timestamp from test set (eval_paper_authors)
+
     Returns:
         window_edges (dict): edges in the window for rule application
     """
@@ -76,6 +76,37 @@ def get_window_edges(all_data, test_query_ts, learn_edges, window=-1, first_test
         )
         window_edges = store_edges(all_data[mask])
     return window_edges
+
+# def get_window_edges(all_data, test_query_ts, learn_edges, window=-1):
+#     """
+#     Get the edges in the data (for rule application) that occur in the specified time window.
+#     If window is 0, all edges before the test query timestamp are included.
+#     If window is -1, the edges on which the rules are learned are used.
+#     If window is an integer n > 0, all edges within n timestamps before the test query
+#     timestamp are included.
+
+#     Parameters:
+#         all_data (np.ndarray): complete dataset (train/valid/test)
+#         test_query_ts (np.ndarray): test query timestamp
+#         learn_edges (dict): edges on which the rules are learned
+#         window (int): time window used for rule application
+
+#     Returns:
+#         window_edges (dict): edges in the window for rule application
+#     """
+
+#     if window > 0:
+#         mask = (all_data[:, 3] < test_query_ts) * (
+#             all_data[:, 3] >= test_query_ts - window
+#         )
+#         window_edges = store_edges(all_data[mask])
+#     elif window == 0:
+#         mask = all_data[:, 3] < test_query_ts
+#         window_edges = store_edges(all_data[mask])
+#     elif window == -1:
+#         window_edges = learn_edges
+
+#     return window_edges
 
 
 def match_acyclic_body_relations(rule, edges, test_query_sub):
@@ -489,6 +520,6 @@ def verbalize_walk(walk, data):
     for j in range(l):
         walk_str += data.id2relation[walk[3 * j + 1]] + "\t"
         walk_str += data.id2entity[walk[3 * j + 2]] + "\t"
-        walk_str += data.id2ts[walk[3 * j + 3]] + "\t"
+        walk_str += walk[3 * j + 3] + "\t"
 
     return walk_str[:-1]

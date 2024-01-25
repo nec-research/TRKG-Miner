@@ -7,15 +7,17 @@ from joblib import Parallel, delayed
 from grapher import Grapher
 from temporal_walk import Temporal_Walk
 from rule_learning import Rule_Learner, rules_statistics
-
+import time
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--dataset", "-d", default="", type=str)
+parser.add_argument("--dataset", "-d", default="ICEWS14", type=str)
 parser.add_argument("--rule_lengths", "-l", default="3", type=int, nargs="+")
 parser.add_argument("--num_walks", "-n", default="100", type=int)
 parser.add_argument("--transition_distr", default="exp", type=str)
-parser.add_argument("--num_processes", "-p", default=1, type=int)
+parser.add_argument("--num_processes", "-p", default=10, type=int)
 parser.add_argument("--seed", "-s", default=None, type=int)
+parser.add_argument("--runnr", default=0, type=int) #ADDED JULIA
+
 parsed = vars(parser.parse_args())
 start_o = time.time()
 dataset = parsed["dataset"]
@@ -25,6 +27,7 @@ num_walks = parsed["num_walks"]
 transition_distr = parsed["transition_distr"]
 num_processes = parsed["num_processes"]
 seed = parsed["seed"]
+exp_nr = parsed['runnr']
 
 dataset_dir = "../data/" + dataset + "/"
 data = Grapher(dataset_dir)
@@ -102,11 +105,12 @@ print("Learning finished in {} seconds.".format(total_time))
 
 rl.rules_dict = all_rules
 rl.sort_rules_dict()
-dt = datetime.now()
-dt = dt.strftime("%d%m%y%H%M")
+# dt = datetime.now()
+dt = str(exp_nr)  #dt.strftime("%d%m%y%H%M") # modified julia
 rl.save_rules(dt, rule_lengths, num_walks, transition_distr, seed)
 rl.save_rules_verbalized(dt, rule_lengths, num_walks, transition_distr, seed)
 rules_statistics(rl.rules_dict)
+
 
 
 end_o = time.time()
@@ -116,3 +120,4 @@ with open('learning_time.txt', 'a') as f:
     f.write(dataset+' learn:\t')
     f.write(str(total_time_o))
     f.write('\n')
+

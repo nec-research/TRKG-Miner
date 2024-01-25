@@ -481,6 +481,8 @@ class Rule_Learner(object):
         """
 
         rules_dict = {int(k): v for k, v in self.rules_dict.items()}
+        # filename = "r{0}_n{1}_{2}_s{3}_rules.json".format(
+        #     rule_lengths, num_walks, transition_distr, seed
         filename = "{0}_r{1}_n{2}_{3}_s{4}_rules.json".format(
             dt, rule_lengths, num_walks, transition_distr, seed
         )
